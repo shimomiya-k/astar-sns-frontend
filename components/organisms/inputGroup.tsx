@@ -15,7 +15,7 @@ export const InputGroup: FC<Props> = (props: Props) => {
   return (
     <form
       onSubmit={props.submit}
-      className="h-1/2 w-1/5 bg-gray-200 flex flex-col items-center justify-start"
+      className="h-1/2 w-1/2 max-w-2xl bg-gray-500 flex flex-col items-center justify-center"
     >
       <div className="font-bold text-2xl pt-4">input post info!</div>
       <SmallInput title="Image URL" name="imgUrl" />

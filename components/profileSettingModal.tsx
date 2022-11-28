@@ -42,21 +42,16 @@ export default function ProfileSettingModal(props: Props) {
     >
       <form
         onSubmit={submit}
-        className="h-1/2 w-1/5 bg-gray-200 flex flex-col items-center justify-center"
+        className="h-1/2 w-1/2 max-w-2xl bg-gray-500 flex flex-col items-center justify-center"
       >
         <div className="font-bold text-2xl pt-4">input profile info!</div>
         <div className="flex flex-row justify-start my-4">
           <div className="mr-2 text-2xl">Image URL:</div>
-          <input
-            id="img_url"
-            name="img_url"
-            type="text"
-            className="w-24 bg-white"
-          />
+          <input id="img_url" name="img_url" type="text" className="w-24 " />
         </div>
         <div className="flex flex-row justify-start my-4">
           <div className="mr-2 text-2xl">Name:</div>
-          <input id="name" name="name" type="text" className="w-24 bg-white" />
+          <input id="name" name="name" type="text" className="w-24 " />
         </div>
         <div className="flex flex-row space-x-1">
           <button

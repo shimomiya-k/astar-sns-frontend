@@ -95,7 +95,8 @@ const contractAddress: string = process.env
 const imageUrlForUnknown = process.env.NEXT_PUBLIC_UNKNOWN_IMAGE_URL as string;
 
 // check if already create profile in contract function
-export const checkCreatedInfo = async (props: PropsCCI) => {
+export const checkCreatedInfo = async (props: PropsCCI): Promise<boolean> => {
+  console.log("checkCreatedInfo");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.checkCreatedInfo(
     "",
@@ -108,17 +109,16 @@ export const checkCreatedInfo = async (props: PropsCCI) => {
   if (output !== undefined && output !== null) {
     const profile = output.toHuman();
     if (typeof profile === "boolean") {
-      props.setIsCreatedProfile(profile);
-      return;
+      return profile;
     }
-
-    props.setIsCreatedProfile(false);
   }
+
+  return false;
 };
 
 // create profile function
 export const createProfile = async (props: PropsCP) => {
-  console.log(props.actingAccount);
+  console.log("createProfile");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -137,7 +137,8 @@ export const createProfile = async (props: PropsCP) => {
 };
 
 // get profile for home screen function
-export const getProfileForHome = async (props: PropsGPFH) => {
+export const getProfileForHome = async (props: PropsGPFH): Promise<string> => {
+  console.log("getProfileForHome");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -147,19 +148,24 @@ export const getProfileForHome = async (props: PropsGPFH) => {
     },
     props.userId
   );
+
   if (output !== undefined && output !== null) {
     const imgUrl = output.toHuman();
     if (typeof imgUrl === "string") {
-      props.setImgUrl(imgUrl);
-      return;
+      return imgUrl;
     }
 
-    props.setImgUrl(imageUrlForUnknown);
+    return imageUrlForUnknown;
   }
+
+  return imageUrlForUnknown;
 };
 
 // get profile for profile screen function
-export const getProfileForProfile = async (props: PropsGPFP) => {
+export const getProfileForProfile = async (
+  props: PropsGPFP
+): Promise<{ imgUrl: string; name: string }> => {
+  console.log("getProfileForProfile");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -169,14 +175,14 @@ export const getProfileForProfile = async (props: PropsGPFP) => {
     },
     props.userId
   );
+  let imageUrl = imageUrlForUnknown;
+  let profileName = "unknown";
+
   if (output !== undefined && output !== null) {
     const obj = output.toHuman();
     const { imgUrl, name } = obj as {
       [index: string]: any;
     };
-
-    let imageUrl = imageUrlForUnknown;
-    let profileName = "unknown";
 
     if (typeof imgUrl === "string") {
       imageUrl = imgUrl;
@@ -187,14 +193,18 @@ export const getProfileForProfile = async (props: PropsGPFP) => {
     if (typeof name === "string") {
       profileName = name;
     }
-
-    props.setImgUrl(imageUrlForUnknown);
-    props.setName(profileName);
   }
+  return {
+    imgUrl: imageUrl,
+    name: profileName,
+  };
 };
 
 // get profile for message screen function
-export const getProfileForMessage = async (props: PropsGPFM) => {
+export const getProfileForMessage = async (
+  props: PropsGPFM
+): Promise<{ profile: ProfileType | undefined }> => {
+  console.log("getProfileForMessage");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -204,22 +214,19 @@ export const getProfileForMessage = async (props: PropsGPFM) => {
     },
     props.userId
   );
+  let profile;
   if (output !== undefined && output !== null) {
-    const profile = output.toHuman() as ProfileType | undefined;
-
-    props.setMyImgUrl(
-      profile?.imgUrl == null ? imageUrlForUnknown : profile.imgUrl
-    );
-    props.setImgUrl(
-      profile?.imgUrl == null ? imageUrlForUnknown : profile.imgUrl
-    );
-    props.setFriendList(profile?.friendList == null ? [] : profile.friendList);
-    props.setProfile(profile);
+    const profileResult = output.toHuman() as ProfileType | undefined;
+    console.log(profileResult);
+    profile = profileResult;
   }
+
+  return { profile };
 };
 
 // get simple profile for message screen function
 export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
+  console.log("getProfileForMessage");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -237,6 +244,7 @@ export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
 
 // follow another account function
 export const follow = async (props: PropsF) => {
+  console.log("follow");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -258,6 +266,7 @@ export const follow = async (props: PropsF) => {
 };
 
 export const setProfileInfo = async (props: PropSPI) => {
+  console.log("setProfileInfo");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress!);
   const performingAccount = props.actingAccount;
@@ -280,7 +289,8 @@ export const setProfileInfo = async (props: PropSPI) => {
 };
 
 // get following list function
-export const getFollowingList = async (props: PropsGFIL) => {
+export const getFollowingList = async (props: PropsGFIL): Promise<string[]> => {
+  console.log("getFollowingList");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getFollowingList(
     "",
@@ -292,14 +302,15 @@ export const getFollowingList = async (props: PropsGFIL) => {
   );
   if (output !== undefined && output !== null) {
     const list = output.toHuman() as any;
-    props.setFollowingList(list);
-    console.log(output.toHuman());
+    return list;
   }
-  return;
+
+  return [];
 };
 
 // get follower list function
-export const getFollowerList = async (props: PropsGFEL) => {
+export const getFollowerList = async (props: PropsGFEL): Promise<string[]> => {
+  console.log("getFollowerList");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getFollowerList(
     "",
@@ -311,7 +322,7 @@ export const getFollowerList = async (props: PropsGFEL) => {
   );
   if (output !== undefined && output !== null) {
     const list = output.toHuman() as any;
-    props.setFollowerList(list);
+    return list;
   }
-  return;
+  return [];
 };

@@ -50,6 +50,7 @@ const contractAddress: string = process.env
 
 // release post function
 export const releasePost = async (props: PropsRP) => {
+  console.log("releasePost");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -80,8 +81,9 @@ export const releasePost = async (props: PropsRP) => {
 
 // get general post function
 export const getGeneralPost = async (props: PropsGGP) => {
+  console.log("getGeneralPost");
   const contract = new ContractPromise(props.api, abi, contractAddress);
-  const { gasConsumed, result, output } = await contract.query.getGeneralPost(
+  const { output } = await contract.query.getGeneralPost(
     "",
     {
       value: 0,
@@ -89,6 +91,7 @@ export const getGeneralPost = async (props: PropsGGP) => {
     },
     1
   );
+
   if (output !== undefined && output !== null) {
     if (output !== undefined && output !== null) {
       const list = output.toHuman();
@@ -99,6 +102,7 @@ export const getGeneralPost = async (props: PropsGGP) => {
 
 // add like to post function
 export const addLikes = async (props: PropsAL) => {
+  console.log("addLikes");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -120,7 +124,10 @@ export const addLikes = async (props: PropsAL) => {
 };
 
 // get individual post function
-export const getIndividualPost = async (props: PropsGIP) => {
+export const getIndividualPost = async (
+  props: PropsGIP
+): Promise<PostType[]> => {
+  console.log("getIndividualPost");
   const contract = new ContractPromise(props.api!, abi, contractAddress!);
   const { gasConsumed, result, output } =
     await contract.query.getIndividualPost(
@@ -134,6 +141,8 @@ export const getIndividualPost = async (props: PropsGIP) => {
     );
   if (output !== undefined && output !== null) {
     const list = output.toHuman();
-    props.setIndividualPostList(list as PostType[]);
+    return list as PostType[];
   }
+
+  return [];
 };

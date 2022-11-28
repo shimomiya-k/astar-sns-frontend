@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { ApiPromise } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import React, { useEffect, useState } from "react";
@@ -8,7 +7,7 @@ import MessageMember from "../components/message_member";
 import MessageRoom from "../components/messageRoom";
 import TopBar from "../components/topBar";
 import { connectToContract } from "../hooks/connect";
-import { balenceOf } from "../hooks/FT";
+import { balanceOf } from "../hooks/FT";
 import { getLastMessage, getMessageList } from "../hooks/messageFunction";
 import {
   checkCreatedInfo,
@@ -18,7 +17,7 @@ import {
 } from "../hooks/profileFunction";
 import type { ProfileType } from "../hooks/profileFunction";
 
-export default function message() {
+export default function Message() {
   // variable related to contract
   const [api, setApi] = useState<ApiPromise>();
   const [accountList, setAccountList] = useState<InjectedAccountWithMeta[]>([]);
@@ -41,51 +40,92 @@ export default function message() {
   const [balance, setBalance] = useState<string>("0");
 
   useEffect(() => {
-    //connect to contract
-    connectToContract({
-      api: api,
-      accountList: accountList,
-      actingAccount: actingAccount!,
-      isSetup: isSetup,
-      setApi: setApi,
-      setAccountList: setAccountList,
-      setActingAccount: setActingAccount!,
-      setIsSetup: setIsSetup,
-    });
-    if (!isSetup) return;
+    const main = async () => {
+      let accounts: any[] = [];
+      if (!isSetup && accountList.length === 0) {
+        accounts = await connectToContract({
+          api: api,
+          accountList: accountList,
+          actingAccount: actingAccount!,
+          isSetup: isSetup,
+          setApi: setApi,
+          setAccountList: setAccountList,
+          setActingAccount: setActingAccount!,
+          setIsSetup: setIsSetup,
+        });
+      }
 
-    // get profile
-    getProfileForMessage({
-      api: api,
-      userId: actingAccount?.address,
-      setImgUrl: setImgUrl,
-      setMyImgUrl: setMyImgUrl,
-      setFriendList: setFriendList,
-      setProfile: setProfile,
-    });
-    // create message member list UI
-    createMessageMemberList();
+      if (!isSetup && accounts.length !== 0) {
+        setAccountList(accounts);
+        setActingAccount(accounts[0]);
+        setIsSetup(true);
+        return;
+      }
 
-    balenceOf({
-      api: api,
-      actingAccount: actingAccount!,
-      setBalance: setBalance,
-    });
+      console.log(`isSetup: ${isSetup}`);
+      if (!isSetup) {
+        return;
+      }
 
-    // check if already created profile in frontend
-    if (isCreatedFnRun) return;
+      // get profile
+      const imageUrlForUnknown = process.env
+        .NEXT_PUBLIC_UNKNOWN_IMAGE_URL as string;
+      const result = await getProfileForMessage({
+        api: api,
+        userId: actingAccount?.address,
+        setImgUrl: setImgUrl,
+        setMyImgUrl: setMyImgUrl,
+        setFriendList: setFriendList,
+        setProfile: setProfile,
+      });
+      setMyImgUrl(
+        result.profile?.imgUrl == null
+          ? imageUrlForUnknown
+          : result.profile.imgUrl
+      );
+      setImgUrl(
+        result.profile?.imgUrl == null
+          ? imageUrlForUnknown
+          : result.profile.imgUrl
+      );
+      setFriendList(
+        result.profile?.friendList == null ? [] : result.profile.friendList
+      );
+      setProfile(result.profile);
 
-    // check if already created profile in contract
-    checkCreatedInfo({
-      api: api,
-      userId: actingAccount?.address,
-      setIsCreatedProfile: setIsCreatedProfile,
-    });
-    if (isCreatedProfile) return;
-    // create profile
-    createProfile({ api: api, actingAccount: actingAccount! });
-    setIsCreatedFnRun(true);
-  });
+      // create message member list UI
+      await createMessageMemberList();
+
+      await balanceOf({
+        api: api,
+        actingAccount: actingAccount!,
+        setBalance: setBalance,
+      });
+
+      if (isCreatedFnRun) {
+        return;
+      }
+
+      console.log("checkCreatedInfo");
+      const exists = await checkCreatedInfo({
+        api: api,
+        userId: actingAccount?.address!,
+        setIsCreatedProfile: setIsCreatedProfile,
+      });
+
+      console.log(`exists: ${exists}`);
+      if (exists) {
+        setIsCreatedProfile(exists);
+        setIsCreatedFnRun(true);
+        return;
+      }
+
+      await createProfile({ api: api, actingAccount: actingAccount! });
+      setIsCreatedFnRun(true);
+    };
+
+    main();
+  }, [isSetup]);
 
   // create message member list UI
   const createMessageMemberList = async () => {
@@ -129,8 +169,8 @@ export default function message() {
   };
 
   return !showMessageModal ? (
-    <div className="flex justify-center items-center bg-gray-200 w-screen h-screen relative">
-      <main className="items-center h-screen w-1/3 flex bg-white flex-col">
+    <div className="flex justify-center items-center w-screen h-screen relative">
+      <main className="items-center w-screen h-screen max-w-4xl flex flex-col">
         <TopBar
           idList={accountList}
           imgUrl={imgUrl}

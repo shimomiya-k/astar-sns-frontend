@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { ApiPromise } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import React, { useEffect, useState } from "react";
@@ -9,7 +8,7 @@ import Post from "../components/post";
 import PostModal from "../components/postModal";
 import TopBar from "../components/topBar";
 import { connectToContract } from "../hooks/connect";
-import { balenceOf, distributeReferLikes, transfer } from "../hooks/FT";
+import { balanceOf, distributeReferLikes, transfer } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getGeneralPost } from "../hooks/postFunction";
 import {
@@ -18,7 +17,7 @@ import {
   getProfileForHome,
 } from "../hooks/profileFunction";
 
-export default function home() {
+export default function Home() {
   const [api, setApi] = useState<ApiPromise>();
 
   const [isCreatedProfile, setIsCreatedProfile] = useState(true);
@@ -27,55 +26,111 @@ export default function home() {
   const [isSetup, setIsSetup] = useState(false);
   const [isDistributed, setIsDistributed] = useState(false);
 
-  const [imgUrl, setImgUrl] = useState("");
+  const [imgUrl, setImgUrl] = useState<string>("");
   const [accountList, setAccountList] = useState<InjectedAccountWithMeta[]>([]);
   const [actingAccount, setActingAccount] = useState<InjectedAccountWithMeta>();
   const [generalPostList, setGeneralPostList] = useState<PostType[]>([]);
   const [balance, setBalance] = useState<string>("0");
 
   useEffect(() => {
-    connectToContract({
-      api: api,
-      accountList: accountList,
-      actingAccount: actingAccount!,
-      isSetup: isSetup,
-      setApi: setApi,
-      setAccountList: setAccountList,
-      setActingAccount: setActingAccount!,
-      setIsSetup: setIsSetup,
-    });
-    if (!isSetup) return;
-    getProfileForHome({
-      api: api!,
-      userId: actingAccount?.address!,
-      setImgUrl: setImgUrl,
-    });
-    balenceOf({
-      api: api,
-      actingAccount: actingAccount!,
-      setBalance: setBalance,
-    });
-    getGeneralPost({ api: api!, setGeneralPostList: setGeneralPostList });
-    if (isDistributed) return;
-    distributeReferLikes({
-      api: api,
-      actingAccount: actingAccount!,
-    });
-    setIsDistributed(true);
-    if (isCreatedFnRun) return;
-    checkCreatedInfo({
-      api: api,
-      userId: actingAccount?.address!,
-      setIsCreatedProfile: setIsCreatedProfile,
-    });
-    if (isCreatedProfile) return;
-    createProfile({ api: api, actingAccount: actingAccount! });
-    setIsCreatedFnRun(true);
-  });
+    const main = async () => {
+      let accounts: any[] = [];
+      if (!isSetup && accountList.length === 0) {
+        accounts = await connectToContract({
+          api: api,
+          accountList: accountList,
+          actingAccount: actingAccount!,
+          isSetup: isSetup,
+          setApi: setApi,
+          setAccountList: setAccountList,
+          setActingAccount: setActingAccount!,
+          setIsSetup: setIsSetup,
+        });
+      }
+
+      if (!isSetup && accounts.length !== 0) {
+        setAccountList(accounts);
+        setActingAccount(accounts[0]);
+        setIsSetup(true);
+        return;
+      }
+
+      console.log(`isSetup: ${isSetup}`);
+      if (!isSetup) {
+        return;
+      }
+
+      let imageUrl = imgUrl;
+      if (!imgUrl || imgUrl === "") {
+        console.log("getProfileForHome");
+        imageUrl = await getProfileForHome({
+          api: api!,
+          userId: actingAccount?.address!,
+          setImgUrl: setImgUrl,
+        });
+      }
+
+      if (imgUrl === "" && imageUrl !== "") {
+        setImgUrl(imageUrl);
+        return;
+      }
+
+      console.log("balanceOf");
+      await balanceOf({
+        api: api,
+        actingAccount: actingAccount!,
+        setBalance: setBalance,
+      });
+
+      console.log("getGeneralPost");
+      await getGeneralPost({
+        api: api!,
+        setGeneralPostList: setGeneralPostList,
+      });
+
+      console.log(`isDistributed: ${isDistributed}`);
+      if (isDistributed) {
+        return;
+      }
+
+      console.log("distributeReferLikes");
+      await distributeReferLikes({
+        api: api,
+        actingAccount: actingAccount!,
+      });
+
+      setIsDistributed(true);
+
+      console.log(`isCreatedFnRun: ${isCreatedFnRun}`);
+      if (isCreatedFnRun) {
+        return;
+      }
+
+      console.log("checkCreatedInfo");
+      const exists = await checkCreatedInfo({
+        api: api,
+        userId: actingAccount?.address!,
+        setIsCreatedProfile: setIsCreatedProfile,
+      });
+
+      console.log(`exists: ${exists}`);
+      if (exists) {
+        setIsCreatedProfile(exists);
+        setIsCreatedFnRun(true);
+        return;
+      }
+
+      console.log("createProfile");
+      await createProfile({ api: api, actingAccount: actingAccount! });
+      setIsCreatedFnRun(true);
+    };
+
+    main();
+  }, [imgUrl, isSetup]);
 
   return (
-    <div className="flex justify-center items-center bg-gray-200 w-screen h-screen relative">
-      <main className="items-center justify-center h-screen w-1/3 flex bg-white flex-col">
+    <div className="flex justify-center items-center w-screen h-screen relative">
+      <main className="items-center justify-center w-screen h-screen max-w-4xl flex flex-col">
         <PostModal
           isOpen={showNewPostModal}
           afterOpenFn={setShowNewPostModal}

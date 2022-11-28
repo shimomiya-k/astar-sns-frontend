@@ -37,8 +37,8 @@ export default function MessageRoom(props: Props) {
   };
 
   return (
-    <div className="flex justify-center items-center bg-gray-200 w-screen h-screen ">
-      <main className="items-center h-screen w-1/3 flex bg-white flex-col">
+    <div className="flex justify-center items-cente w-screen h-screen ">
+      <main className="items-center h-screen max-w-4xl fle flex-col">
         <MessageBar
           userImgUrl={props.userImgUrl}
           userName={props.userName}

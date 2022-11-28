@@ -37,6 +37,7 @@ const contractAddress: string = process.env
 
 // メッセージ送信関数
 export const sendMessage = async (props: PropsSM) => {
+  console.log("sendMessage");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -67,6 +68,7 @@ export const sendMessage = async (props: PropsSM) => {
 
 // メッセージリストを取得する関数
 export const getMessageList = async (props: PropsGML) => {
+  console.log("getMessageList");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getMessageList(
     "",
@@ -85,6 +87,7 @@ export const getMessageList = async (props: PropsGML) => {
 
 // それぞれのメッセージリストの最後のメッセージを取得する関数
 export const getLastMessage = async (props: PropsGLM) => {
+  console.log("getLastMessage");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getLastMessage(
     "",

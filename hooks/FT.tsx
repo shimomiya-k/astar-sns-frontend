@@ -25,7 +25,8 @@ type PropsDRL = {
 const contractAddress: string = process.env
   .NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
-export const balenceOf = async (props: PropsBO) => {
+export const balanceOf = async (props: PropsBO) => {
+  console.log("balanceOf");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.balanceOf(
     "",
@@ -42,6 +43,7 @@ export const balenceOf = async (props: PropsBO) => {
 };
 
 export const transfer = async (props: PropsTF) => {
+  console.log("transfer");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -64,11 +66,13 @@ export const transfer = async (props: PropsTF) => {
 };
 
 export const distributeReferLikes = async (props: PropsDRL) => {
+  console.log("distributeReferLikes");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
+
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
   const injector = await web3FromSource(performingAccount.meta.source);
-  const date = new Date();
+
   const transfer = await contract.tx.distributeReferLikes({
     value: 0,
     gasLimit: 31518000000,
