@@ -128,7 +128,7 @@ export default function Profile(props: any) {
     };
 
     main();
-  }, [isSetup, name, imgUrl]);
+  }, [actingAccount, isSetup, name, imgUrl]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative light">

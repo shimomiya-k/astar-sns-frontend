@@ -55,14 +55,12 @@ export default function Home() {
         return;
       }
 
-      console.log(`isSetup: ${isSetup}`);
       if (!isSetup) {
         return;
       }
 
       let imageUrl = imgUrl;
       if (!imgUrl || imgUrl === "") {
-        console.log("getProfileForHome");
         imageUrl = await getProfileForHome({
           api: api!,
           userId: actingAccount?.address!,
@@ -75,25 +73,21 @@ export default function Home() {
         return;
       }
 
-      console.log("balanceOf");
       await balanceOf({
         api: api,
         actingAccount: actingAccount!,
         setBalance: setBalance,
       });
 
-      console.log("getGeneralPost");
       await getGeneralPost({
         api: api!,
         setGeneralPostList: setGeneralPostList,
       });
 
-      console.log(`isDistributed: ${isDistributed}`);
       if (isDistributed) {
         return;
       }
 
-      console.log("distributeReferLikes");
       await distributeReferLikes({
         api: api,
         actingAccount: actingAccount!,
@@ -101,32 +95,28 @@ export default function Home() {
 
       setIsDistributed(true);
 
-      console.log(`isCreatedFnRun: ${isCreatedFnRun}`);
       if (isCreatedFnRun) {
         return;
       }
 
-      console.log("checkCreatedInfo");
       const exists = await checkCreatedInfo({
         api: api,
         userId: actingAccount?.address!,
         setIsCreatedProfile: setIsCreatedProfile,
       });
 
-      console.log(`exists: ${exists}`);
       if (exists) {
         setIsCreatedProfile(exists);
         setIsCreatedFnRun(true);
         return;
       }
 
-      console.log("createProfile");
       await createProfile({ api: api, actingAccount: actingAccount! });
       setIsCreatedFnRun(true);
     };
 
     main();
-  }, [imgUrl, isSetup]);
+  }, [actingAccount, imgUrl, isSetup]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative">
