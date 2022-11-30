@@ -6,12 +6,12 @@ import { Balance } from "../atoms/balance";
 import DisconnectButton from "../atoms/disconnectButton";
 import HeaderProfile from "../molecules/headerProfile";
 import type { Id } from "../molecules/headerProfile";
+import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 
 type Props = {
   selectedScreen: string;
   imgUrl: string;
-  idList: Id[];
-  setActingAccount: (id: Id) => Dispatch<React.SetStateAction<string>>;
+  idList: InjectedAccountWithMeta[];
   balance: string;
 };
 
@@ -25,11 +25,7 @@ const Header: FC<Props> = (props: Props) => {
       {props.selectedScreen === "profile" ? (
         <DisconnectButton />
       ) : (
-        <HeaderProfile
-          imgUrl={props.imgUrl}
-          idList={props.idList}
-          setActingAccount={props.setActingAccount}
-        />
+        <HeaderProfile imgUrl={props.imgUrl} idList={props.idList} />
       )}
     </div>
   );

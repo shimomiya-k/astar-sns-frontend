@@ -1,86 +1,89 @@
 import { ApiPromise } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 import { PostButton } from "../components/atoms/postButton";
 import BottomNavigation from "../components/bottomNavigation";
 import Post from "../components/post";
 import PostModal from "../components/postModal";
 import TopBar from "../components/topBar";
-import { connectToContract } from "../hooks/connect";
+import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf, distributeReferLikes, transfer } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getGeneralPost } from "../hooks/postFunction";
 import {
   checkCreatedInfo,
   createProfile,
+  getProfile,
   getProfileForHome,
 } from "../hooks/profileFunction";
+import Context from "../store/context";
 
 export default function Home() {
-  const [api, setApi] = useState<ApiPromise>();
+  const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
+    useContext(Context);
 
   const [isCreatedProfile, setIsCreatedProfile] = useState(true);
   const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
-  const [isSetup, setIsSetup] = useState(false);
   const [isDistributed, setIsDistributed] = useState(false);
 
-  const [imgUrl, setImgUrl] = useState<string>("");
-  const [accountList, setAccountList] = useState<InjectedAccountWithMeta[]>([]);
-  const [actingAccount, setActingAccount] = useState<InjectedAccountWithMeta>();
   const [generalPostList, setGeneralPostList] = useState<PostType[]>([]);
   const [balance, setBalance] = useState<string>("0");
 
+  const loadAccount = async (): Promise<boolean> => {
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!accountState.api) {
+      const api = await connectedApi();
+      accountDispatch({ type: "UPDATE_API", api });
+      return false;
+    }
+
+    // 接続中のアカウントがない場合は接続する
+    if (!accountState.currentAccount) {
+      const accounts = await connectToContract();
+      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
+      return false;
+    }
+
+    return true;
+  };
+
+  const initialProfile = async () => {
+    if (myProfileState.userId) {
+      return;
+    }
+
+    const profile = await getProfile(
+      accountState.api!,
+      accountState.currentAccount!.address!
+    );
+
+    if (profile) {
+      myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
+    }
+  };
+
   useEffect(() => {
     const main = async () => {
-      let accounts: any[] = [];
-      if (!isSetup && accountList.length === 0) {
-        accounts = await connectToContract({
-          api: api,
-          accountList: accountList,
-          actingAccount: actingAccount!,
-          isSetup: isSetup,
-          setApi: setApi,
-          setAccountList: setAccountList,
-          setActingAccount: setActingAccount!,
-          setIsSetup: setIsSetup,
-        });
-      }
-
-      if (!isSetup && accounts.length !== 0) {
-        setAccountList(accounts);
-        setActingAccount(accounts[0]);
-        setIsSetup(true);
+      // アカウントの読み込みが完了しない場合は次の処理へ進めない
+      const next = await loadAccount();
+      if (!next) {
         return;
       }
 
-      if (!isSetup) {
-        return;
-      }
-
-      let imageUrl = imgUrl;
-      if (!imgUrl || imgUrl === "") {
-        imageUrl = await getProfileForHome({
-          api: api!,
-          userId: actingAccount?.address!,
-          setImgUrl: setImgUrl,
-        });
-      }
-
-      if (imgUrl === "" && imageUrl !== "") {
-        setImgUrl(imageUrl);
-        return;
-      }
+      // プロフィール情報の取得と初期化
+      // 既に初期化が済んでいる場合は何もしない
+      await initialProfile();
 
       await balanceOf({
-        api: api,
-        actingAccount: actingAccount!,
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
         setBalance: setBalance,
       });
 
       await getGeneralPost({
-        api: api!,
+        api: accountState.api!,
         setGeneralPostList: setGeneralPostList,
       });
 
@@ -89,8 +92,8 @@ export default function Home() {
       }
 
       await distributeReferLikes({
-        api: api,
-        actingAccount: actingAccount!,
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
       });
 
       setIsDistributed(true);
@@ -100,8 +103,8 @@ export default function Home() {
       }
 
       const exists = await checkCreatedInfo({
-        api: api,
-        userId: actingAccount?.address!,
+        api: accountState.api,
+        userId: accountState.currentAccount!.address!,
         setIsCreatedProfile: setIsCreatedProfile,
       });
 
@@ -111,12 +114,15 @@ export default function Home() {
         return;
       }
 
-      await createProfile({ api: api, actingAccount: actingAccount! });
+      await createProfile({
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
+      });
       setIsCreatedFnRun(true);
     };
 
     main();
-  }, [actingAccount, imgUrl, isSetup]);
+  }, [accountState]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative">
@@ -124,13 +130,13 @@ export default function Home() {
         <PostModal
           isOpen={showNewPostModal}
           afterOpenFn={setShowNewPostModal}
-          api={api!}
-          actingAccount={actingAccount!}
+          api={accountState.api!}
+          actingAccount={accountState.currentAccount!}
         />
         <TopBar
-          idList={accountList}
-          imgUrl={imgUrl}
-          setActingAccount={setActingAccount}
+          idList={accountState.accounts}
+          imgUrl={myProfileState.imgUrl}
+          setActingAccount={accountState.currentAccount}
           balance={balance}
         />
         <div className="flex-1 overflow-scroll">
@@ -145,13 +151,13 @@ export default function Home() {
               post_img_url={post.imgUrl}
               userId={post.userId}
               postId={post.postId}
-              actingAccount={actingAccount}
-              api={api}
+              actingAccount={accountState.currentAccount}
+              api={accountState.api}
             />
           ))}
         </div>
         <div className="w-full">
-          <BottomNavigation api={api} />
+          <BottomNavigation api={accountState.api} />
         </div>
         <PostButton setShowNewPostModal={setShowNewPostModal} />
       </main>

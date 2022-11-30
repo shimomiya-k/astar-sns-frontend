@@ -9,9 +9,6 @@ type Props = {
   imgUrl: string;
   name: string;
   isOpenModal: Dispatch<React.SetStateAction<boolean>>;
-  setActingAccount: Dispatch<
-    React.SetStateAction<InjectedAccountWithMeta | undefined>
-  >;
   idList: InjectedAccountWithMeta[];
   setIsCreatedFnRun: Dispatch<React.SetStateAction<boolean>>;
   api: ApiPromise;
@@ -27,7 +24,6 @@ export default function ProfileSubTopBar(props: Props) {
       <ProfileList
         name={props.name}
         isOpenModal={props.isOpenModal}
-        setActingAccount={props.setActingAccount}
         idList={props.idList}
         setIsCreatedFnRun={props.setIsCreatedFnRun}
         api={props.api}

@@ -1,13 +1,13 @@
 import { ApiPromise } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 import BottomNavigation from "../components/bottomNavigation";
 import Post from "../components/post";
 import ProfileSettingModal from "../components/profileSettingModal";
 import ProfileSubTopBar from "../components/profileSubTopBar";
 import TopBar from "../components/topBar";
-import { connectToContract } from "../hooks/connect";
+import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getIndividualPost } from "../hooks/postFunction";
@@ -18,8 +18,11 @@ import {
   getFollowingList,
   getProfileForProfile,
 } from "../hooks/profileFunction";
+import Context from "../store/context";
 
 export default function Profile(props: any) {
+  const { accountState, accountDispatch } = useContext(Context);
+
   const [imgUrl, setImgUrl] = useState("");
   const [isCreatedProfile, setIsCreatedProfile] = useState(true);
   const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
@@ -27,81 +30,63 @@ export default function Profile(props: any) {
   const [individualPostList, setIndividualPostList] = useState<PostType[]>([]);
 
   const [showSettingModal, setShowSettingModal] = useState(false);
-  const [isSetup, setIsSetup] = useState(false);
-  const [api, setApi] = useState<ApiPromise>();
-  const [accountList, setAccountList] = useState<InjectedAccountWithMeta[]>([]);
-  const [actingAccount, setActingAccount] = useState<InjectedAccountWithMeta>();
   const [followingList, setFollowingList] = useState<Array<string>>([]);
   const [followerList, setFollowerList] = useState<Array<string>>([]);
   const [balance, setBalance] = useState<string>("0");
 
   useEffect(() => {
     const main = async () => {
-      let accounts: any[] = [];
-      if (!isSetup && accountList.length === 0) {
-        accounts = await connectToContract({
-          api: api,
-          accountList: accountList,
-          actingAccount: actingAccount!,
-          isSetup: isSetup,
-          setApi: setApi,
-          setAccountList: setAccountList,
-          setActingAccount: setActingAccount!,
-          setIsSetup: setIsSetup,
-        });
-      }
-
-      if (!isSetup && accounts.length !== 0) {
-        setAccountList(accounts);
-        setActingAccount(accounts[0]);
-        setIsSetup(true);
+      // Apiオブジェクトが存在しない場合は初期化をする
+      if (!accountState.api) {
+        const api = await connectedApi();
+        accountDispatch({ type: "UPDATE_API", api });
         return;
       }
 
-      console.log(`isSetup: ${isSetup}`);
-      if (!isSetup) {
+      // 接続中のアカウントがない場合は接続する
+      if (!accountState.currentAccount) {
+        const accounts = await connectToContract();
+        accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
         return;
       }
 
       const profile = await getProfileForProfile({
-        api: api,
-        userId: actingAccount?.address,
+        api: accountState.api,
+        userId: accountState.currentAccount!.address,
         setImgUrl: setImgUrl,
         setName: setName,
       });
-
-      console.log(profile);
 
       setImgUrl(profile.imgUrl);
       setName(profile.name);
 
       const postListResult = await getIndividualPost({
-        api: api,
-        actingAccount: actingAccount,
+        api: accountState.api,
+        actingAccount: accountState.currentAccount,
         setIndividualPostList: setIndividualPostList,
       });
 
       setIndividualPostList(postListResult);
 
       const followingListResult = await getFollowingList({
-        api: api,
-        userId: actingAccount?.address,
+        api: accountState.api,
+        userId: accountState.currentAccount?.address,
         setFollowingList: setFollowingList,
       });
 
       setFollowingList(followingListResult);
 
       const followerListResult = await getFollowerList({
-        api: api,
-        userId: actingAccount?.address,
+        api: accountState.api,
+        userId: accountState.currentAccount?.address,
         setFollowerList: setFollowerList,
       });
 
       setFollowerList(followerListResult);
 
       await balanceOf({
-        api: api,
-        actingAccount: actingAccount!,
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
         setBalance: setBalance,
       });
 
@@ -111,24 +96,26 @@ export default function Profile(props: any) {
 
       console.log("checkCreatedInfo");
       const exists = await checkCreatedInfo({
-        api: api,
-        userId: actingAccount?.address!,
+        api: accountState.api,
+        userId: accountState.currentAccount?.address!,
         setIsCreatedProfile: setIsCreatedProfile,
       });
 
-      console.log(`exists: ${exists}`);
       if (exists) {
         setIsCreatedProfile(exists);
         setIsCreatedFnRun(true);
         return;
       }
 
-      await createProfile({ api: api, actingAccount: actingAccount! });
+      await createProfile({
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
+      });
       setIsCreatedFnRun(true);
     };
 
     main();
-  }, [actingAccount, isSetup, name, imgUrl]);
+  }, [accountState, name, imgUrl]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative light">
@@ -136,16 +123,15 @@ export default function Profile(props: any) {
         <ProfileSettingModal
           isOpen={showSettingModal}
           afterOpenFn={setShowSettingModal}
-          api={api}
-          userId={actingAccount?.address}
+          api={accountState.api}
+          userId={accountState.currentAccount?.address}
           setImgUrl={setImgUrl}
           setName={setName}
-          actingAccount={actingAccount}
+          actingAccount={accountState.currentAccount}
         />
         <TopBar
-          idList={accountList}
+          idList={accountState.accounts}
           imgUrl={imgUrl}
-          setActingAccount={setActingAccount}
           balance={balance}
         />
         <ProfileSubTopBar
@@ -154,10 +140,9 @@ export default function Profile(props: any) {
           followingList={followingList}
           followerList={followerList}
           isOpenModal={setShowSettingModal}
-          setActingAccount={setActingAccount}
-          idList={accountList}
-          api={api!}
-          actingAccount={actingAccount!}
+          idList={accountState.accounts}
+          api={accountState.api!}
+          actingAccount={accountState.currentAccount!}
           setIsCreatedFnRun={setIsCreatedFnRun}
         />
         <div className="flex-1 overflow-scroll">

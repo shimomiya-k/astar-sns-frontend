@@ -96,7 +96,6 @@ const imageUrlForUnknown = process.env.NEXT_PUBLIC_UNKNOWN_IMAGE_URL as string;
 
 // check if already create profile in contract function
 export const checkCreatedInfo = async (props: PropsCCI): Promise<boolean> => {
-  console.log("checkCreatedInfo");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.checkCreatedInfo(
     "",
@@ -118,7 +117,6 @@ export const checkCreatedInfo = async (props: PropsCCI): Promise<boolean> => {
 
 // create profile function
 export const createProfile = async (props: PropsCP) => {
-  console.log("createProfile");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -138,7 +136,6 @@ export const createProfile = async (props: PropsCP) => {
 
 // get profile for home screen function
 export const getProfileForHome = async (props: PropsGPFH): Promise<string> => {
-  console.log("getProfileForHome");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -165,7 +162,6 @@ export const getProfileForHome = async (props: PropsGPFH): Promise<string> => {
 export const getProfileForProfile = async (
   props: PropsGPFP
 ): Promise<{ imgUrl: string; name: string }> => {
-  console.log("getProfileForProfile");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -204,9 +200,8 @@ export const getProfileForProfile = async (
 export const getProfileForMessage = async (
   props: PropsGPFM
 ): Promise<{ profile: ProfileType | undefined }> => {
-  console.log("getProfileForMessage");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
-  const { gasConsumed, result, output } = await contract.query.getProfileInfo(
+  const { output } = await contract.query.getProfileInfo(
     "",
     {
       value: 0,
@@ -215,18 +210,38 @@ export const getProfileForMessage = async (
     props.userId
   );
   let profile;
+
   if (output !== undefined && output !== null) {
     const profileResult = output.toHuman() as ProfileType | undefined;
-    console.log(profileResult);
     profile = profileResult;
   }
 
   return { profile };
 };
 
+export const getProfile = async (
+  api: ApiPromise,
+  userId: string
+): Promise<ProfileType | undefined> => {
+  const contract = new ContractPromise(api, abi, contractAddress);
+  const { output } = await contract.query.getProfileInfo(
+    "",
+    {
+      value: 0,
+      gasLimit: -1,
+    },
+    `${userId}`
+  );
+
+  if (output !== undefined && output !== null) {
+    return output.toHuman() as ProfileType | undefined;
+  }
+
+  return;
+};
+
 // get simple profile for message screen function
 export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
-  console.log("getProfileForMessage");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -244,7 +259,6 @@ export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
 
 // follow another account function
 export const follow = async (props: PropsF) => {
-  console.log("follow");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -266,7 +280,6 @@ export const follow = async (props: PropsF) => {
 };
 
 export const setProfileInfo = async (props: PropSPI) => {
-  console.log("setProfileInfo");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress!);
   const performingAccount = props.actingAccount;
@@ -290,7 +303,6 @@ export const setProfileInfo = async (props: PropSPI) => {
 
 // get following list function
 export const getFollowingList = async (props: PropsGFIL): Promise<string[]> => {
-  console.log("getFollowingList");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getFollowingList(
     "",
@@ -310,7 +322,6 @@ export const getFollowingList = async (props: PropsGFIL): Promise<string[]> => {
 
 // get follower list function
 export const getFollowerList = async (props: PropsGFEL): Promise<string[]> => {
-  console.log("getFollowerList");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getFollowerList(
     "",

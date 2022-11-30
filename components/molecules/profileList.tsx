@@ -8,9 +8,6 @@ import { WalletAddressSelection } from "../atoms/walletAddressSelection";
 type Props = {
   name: string;
   isOpenModal: Dispatch<React.SetStateAction<boolean>>;
-  setActingAccount: Dispatch<
-    React.SetStateAction<InjectedAccountWithMeta | undefined>
-  >;
   idList: InjectedAccountWithMeta[];
   setIsCreatedFnRun: Dispatch<React.SetStateAction<boolean>>;
   api: ApiPromise;
@@ -26,7 +23,6 @@ export const ProfileList: FC<Props> = (props: Props) => {
       <WalletAddressSelection
         isOpenModal={props.isOpenModal}
         name={props.name}
-        setActingAccount={props.setActingAccount}
         idList={props.idList}
         setIsCreatedFnRun={props.setIsCreatedFnRun}
       />

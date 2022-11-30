@@ -16,12 +16,19 @@ type Props = {
   setIsSetup: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-// コントラクトとの接続を行うための関数
-export const connectToContract = async (
-  props: Props
-): Promise<InjectedAccountWithMeta[]> => {
+export const connectedApi = async (): Promise<ApiPromise> => {
   // rpcのURL
   const blockchainUrl = "ws://127.0.0.1:9944";
+  const wsProvider = new WsProvider(blockchainUrl);
+  return await ApiPromise.create({ provider: wsProvider });
+};
+
+// コントラクトとの接続を行うための関数
+export const connectToContract = async (): Promise<
+  InjectedAccountWithMeta[]
+> => {
+  // rpcのURL
+  // const blockchainUrl = "ws://127.0.0.1:9944";
 
   // この関数でアカウント情報を取得する
   const extensionSetup = async (): Promise<InjectedAccountWithMeta[]> => {
@@ -37,14 +44,11 @@ export const connectToContract = async (
     const accounts = await web3Accounts();
 
     return accounts;
-    // props.setAccountList(accounts);
-    // props.setActingAccount(accounts[0]);
-    // props.setIsSetup(true);
   };
 
   // この部分でコントラクトに接続
-  const wsProvider = new WsProvider(blockchainUrl);
-  const connectedApi = await ApiPromise.create({ provider: wsProvider });
-  props.setApi(connectedApi);
+  // const wsProvider = new WsProvider(blockchainUrl);
+  // const connectedApi = await ApiPromise.create({ provider: wsProvider });
+  // props.setApi(connectedApi);
   return extensionSetup();
 };

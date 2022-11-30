@@ -11,7 +11,6 @@ export default function TopBar(props: any) {
       selectedScreen={selectedScreen}
       imgUrl={props.imgUrl}
       idList={props.idList}
-      setActingAccount={props.setActingAccount}
       balance={props.balance}
     />
   );

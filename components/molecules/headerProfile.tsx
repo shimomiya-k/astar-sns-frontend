@@ -1,5 +1,7 @@
+import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import Image from "next/image";
-import { FC } from "react";
+import { FC, useContext } from "react";
+import Context from "../../store/context";
 
 export type Id = {
   address: string;
@@ -7,11 +9,12 @@ export type Id = {
 
 type Props = {
   imgUrl: string;
-  idList: Id[];
-  setActingAccount: (id: Id) => void;
+  idList: InjectedAccountWithMeta[];
 };
 
 const HeaderProfile: FC<Props> = (props) => {
+  const { accountDispatch } = useContext(Context);
+
   return (
     <div className="flex-row flex items-center ml-[30px]">
       <Image
@@ -25,7 +28,11 @@ const HeaderProfile: FC<Props> = (props) => {
         <div>wallet address</div>
         <select
           onChange={(event) => {
-            props.setActingAccount(props.idList[Number(event.target.value)]);
+            const account: InjectedAccountWithMeta = {
+              ...props.idList[Number(event.target.value)],
+            };
+
+            accountDispatch({ type: "UPDATE_CURRENT_ACCOUNT", account });
           }}
           className="w-32"
         >
