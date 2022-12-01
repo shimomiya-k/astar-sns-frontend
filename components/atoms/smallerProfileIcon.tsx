@@ -1,9 +1,10 @@
 import { ApiPromise } from "@polkadot/api";
 import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import Image from "next/image";
-import type { FC } from "react";
+import { FC, useContext } from "react";
 
 import { follow } from "../../hooks/profileFunction";
+import Context from "../../store/context";
 
 type Props = {
   imgUrl: string;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export const SmallerProfileIcon: FC<Props> = (props: Props) => {
+  const { myProfileDispatch } = useContext(Context);
   const implementFollow = async () => {
     if (confirm("Would you like to follow this account?")) {
       await follow({
@@ -20,6 +22,8 @@ export const SmallerProfileIcon: FC<Props> = (props: Props) => {
         actingAccount: props.actingAccount,
         followedId: props.userId,
       });
+
+      myProfileDispatch({ type: "UPDATE_FOLLOWING", id: props.userId });
     }
   };
   return (

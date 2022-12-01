@@ -8,96 +8,85 @@ import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf } from "../hooks/FT";
 import { getLastMessage, getMessageList } from "../hooks/messageFunction";
 import {
-  checkCreatedInfo,
   createProfile,
-  getProfileForMessage,
+  getProfile,
   getSimpleProfileForMessage,
 } from "../hooks/profileFunction";
 import type { ProfileType } from "../hooks/profileFunction";
 import Context from "../store/context";
+import { MyProfileState } from "../state/profile";
 
 export default function Message() {
-  const { accountState, accountDispatch } = useContext(Context);
+  const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
+    useContext(Context);
 
-  const [imgUrl, setImgUrl] = useState("");
   const [isCreatedProfile, setIsCreatedProfile] = useState(true);
   const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
-  const [friendList, setFriendList] = useState<any[]>([]);
   const [messageList, setMessageList] = useState<any[]>([]);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [userImgUrl, setUserImgUrl] = useState("");
-  const [myImgUrl, setMyImgUrl] = useState("");
   const [messageListId, setMessageListId] = useState<string>("");
   const [messageMemberList, setMessageMemberList] = useState<any[]>([]);
-  const [myUserId, setMyUserId] = useState("");
-  const [profile, setProfile] = useState<ProfileType>();
   const [balance, setBalance] = useState<string>("0");
 
+  const loadAccount = async () => {
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!accountState.api) {
+      const api = await connectedApi();
+      accountDispatch({ type: "UPDATE_API", api });
+      return;
+    }
+
+    // 接続中のアカウントがない場合は接続する
+    if (!accountState.currentAccount) {
+      const accounts = await connectToContract();
+      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
+      return;
+    }
+
+    return;
+  };
+
+  // ウォレット情報の読み込み
   useEffect(() => {
+    // ３回呼ばれるて３回目で値が入る
+    loadAccount();
+  }, [accountState]);
+
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
+    balanceOf({
+      api: accountState.api,
+      actingAccount: accountState.currentAccount!,
+      setBalance: setBalance,
+    });
+  });
+
+  // ユーザー情報の取得
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
     const main = async () => {
-      // Apiオブジェクトが存在しない場合は初期化をする
-      if (!accountState.api) {
-        const api = await connectedApi();
-        accountDispatch({ type: "UPDATE_API", api });
+      // プロフィール情報の取得と初期化
+      // 既に初期化が済んでいる場合は何もしない
+      const profile = await getProfile(
+        accountState.api!,
+        accountState.currentAccount!.address!
+      );
+
+      if (profile) {
+        myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
+        await createMessageMemberList(profile);
         return;
       }
-
-      // 接続中のアカウントがない場合は接続する
-      if (!accountState.currentAccount) {
-        const accounts = await connectToContract();
-        accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-        return;
-      }
-
-      // get profile
-      const imageUrlForUnknown = process.env
-        .NEXT_PUBLIC_UNKNOWN_IMAGE_URL as string;
-      const result = await getProfileForMessage({
-        api: accountState.api!,
-        userId: accountState.currentAccount!.address,
-        setImgUrl: setImgUrl,
-        setMyImgUrl: setMyImgUrl,
-        setFriendList: setFriendList,
-        setProfile: setProfile,
-      });
-      setMyImgUrl(
-        result.profile?.imgUrl == null
-          ? imageUrlForUnknown
-          : result.profile.imgUrl
-      );
-      setImgUrl(
-        result.profile?.imgUrl == null
-          ? imageUrlForUnknown
-          : result.profile.imgUrl
-      );
-      setFriendList(
-        result.profile?.friendList == null ? [] : result.profile.friendList
-      );
-      setProfile(result.profile);
-
-      // create message member list UI
-      await createMessageMemberList();
-
-      await balanceOf({
-        api: accountState.api,
-        actingAccount: accountState.currentAccount!,
-        setBalance: setBalance,
-      });
 
       if (isCreatedFnRun) {
-        return;
-      }
-
-      const exists = await checkCreatedInfo({
-        api: accountState.api,
-        userId: accountState.currentAccount?.address!,
-        setIsCreatedProfile: setIsCreatedProfile,
-      });
-
-      if (exists) {
-        setIsCreatedProfile(exists);
-        setIsCreatedFnRun(true);
         return;
       }
 
@@ -109,43 +98,46 @@ export default function Message() {
     };
 
     main();
-  }, [accountState]);
+  }, [accountState.currentAccount, isCreatedFnRun]);
 
   // create message member list UI
-  const createMessageMemberList = async () => {
+  const createMessageMemberList = async (profile: MyProfileState) => {
+    const { followerList } = profile;
     let memberList: Array<any> = new Array();
-    for (var i = 0; i < friendList.length; i++) {
+    for (var i = 0; i < followerList.length; i++) {
       let friendProfile = (await getSimpleProfileForMessage({
         api: accountState.api,
-        userId: friendList[i],
-      })) as any;
-      let idList = profile?.messageListIdList;
+        userId: followerList[i],
+      })) as ProfileType;
+
+      const idList = profile?.messageListIdList;
       let lastMessage: string | undefined;
-      let messageList = await getMessageList({
+      const messageList = await getMessageList({
         api: accountState.api,
         id: idList![i],
       });
+
       if (idList !== null) {
         lastMessage = await getLastMessage({
           api: accountState.api,
           id: idList![i],
         });
       }
+
       let memberListFactor = (
         <MessageMember
+          key={`${friendProfile.userId}${i}`}
           name={friendProfile?.name!}
+          setUserName={setUserName}
           img_url={friendProfile?.imgUrl}
+          setUserImgUrl={setUserImgUrl}
           last_message={lastMessage}
           setShowMessageModal={setShowMessageModal}
-          setUserName={setUserName}
-          setUserImgUrl={setUserImgUrl}
-          setMyImgUrl={setMyImgUrl}
           messageListId={idList![i]}
           setMessageListId={setMessageListId}
           setMessageList={setMessageList}
           messageList={messageList}
           getMessageList={getMessageList}
-          setMyUserId={setMyUserId}
           myUserId={profile?.userId}
           api={accountState.api}
         />
@@ -160,7 +152,7 @@ export default function Message() {
       <main className="items-center w-screen h-screen max-w-4xl flex flex-col">
         <TopBar
           idList={accountState.accounts}
-          imgUrl={imgUrl}
+          imgUrl={myProfileState.imgUrl}
           setActingAccount={accountState.currentAccount}
           balance={balance}
         />
@@ -177,8 +169,8 @@ export default function Message() {
       setShowMessageModal={setShowMessageModal}
       userName={userName}
       userImgUrl={userImgUrl}
-      myImgUrl={myImgUrl}
-      myUserId={myUserId}
+      myImgUrl={myProfileState.imgUrl}
+      myUserId={myProfileState.userId!}
       api={accountState.api!}
       actingAccount={accountState.currentAccount!}
       messageListId={messageListId!}

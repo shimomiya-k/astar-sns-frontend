@@ -32,12 +32,13 @@ export default function Post(props: any) {
           <div className="flex flex-row w-full pl-[85px] items-center">
             <div className="text-xl mr-1">{props.num_of_likes}</div>
             <AiFillHeart
-              onClick={() => {
-                addLikes({
+              onClick={async () => {
+                await addLikes({
                   api: props.api,
                   actingAccount: props.actingAccount,
                   postId: props.postId,
                 });
+                props.updateGeneralPost();
               }}
               className="fill-[#FD3509] h-[30px] w-[30px]"
             />

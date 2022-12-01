@@ -25,7 +25,7 @@ export const MessageBar: FC<Props> = (props: Props) => {
         </div>
       </div>
       <BsArrowLeft
-        className="absolute top-8 left-[500px] h-12 w-12"
+        className="absolute top-8 h-12 w-12"
         onClick={() => props.setShowMessageModal(false)}
       />
     </>

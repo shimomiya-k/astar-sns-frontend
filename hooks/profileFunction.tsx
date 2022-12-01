@@ -94,27 +94,6 @@ const contractAddress: string = process.env
   .NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 const imageUrlForUnknown = process.env.NEXT_PUBLIC_UNKNOWN_IMAGE_URL as string;
 
-// check if already create profile in contract function
-export const checkCreatedInfo = async (props: PropsCCI): Promise<boolean> => {
-  const contract = new ContractPromise(props.api!, abi, contractAddress);
-  const { gasConsumed, result, output } = await contract.query.checkCreatedInfo(
-    "",
-    {
-      value: 0,
-      gasLimit: -1,
-    },
-    props.userId
-  );
-  if (output !== undefined && output !== null) {
-    const profile = output.toHuman();
-    if (typeof profile === "boolean") {
-      return profile;
-    }
-  }
-
-  return false;
-};
-
 // create profile function
 export const createProfile = async (props: PropsCP) => {
   const { web3FromSource } = await import("@polkadot/extension-dapp");
@@ -132,91 +111,6 @@ export const createProfile = async (props: PropsCP) => {
       (result) => {}
     );
   }
-};
-
-// get profile for home screen function
-export const getProfileForHome = async (props: PropsGPFH): Promise<string> => {
-  const contract = new ContractPromise(props.api, abi, contractAddress);
-  const { gasConsumed, result, output } = await contract.query.getProfileInfo(
-    "",
-    {
-      value: 0,
-      gasLimit: -1,
-    },
-    props.userId
-  );
-
-  if (output !== undefined && output !== null) {
-    const imgUrl = output.toHuman();
-    if (typeof imgUrl === "string") {
-      return imgUrl;
-    }
-
-    return imageUrlForUnknown;
-  }
-
-  return imageUrlForUnknown;
-};
-
-// get profile for profile screen function
-export const getProfileForProfile = async (
-  props: PropsGPFP
-): Promise<{ imgUrl: string; name: string }> => {
-  const contract = new ContractPromise(props.api!, abi, contractAddress);
-  const { gasConsumed, result, output } = await contract.query.getProfileInfo(
-    "",
-    {
-      value: 0,
-      gasLimit: -1,
-    },
-    props.userId
-  );
-  let imageUrl = imageUrlForUnknown;
-  let profileName = "unknown";
-
-  if (output !== undefined && output !== null) {
-    const obj = output.toHuman();
-    const { imgUrl, name } = obj as {
-      [index: string]: any;
-    };
-
-    if (typeof imgUrl === "string") {
-      imageUrl = imgUrl;
-    }
-
-    props.setName("unknown");
-
-    if (typeof name === "string") {
-      profileName = name;
-    }
-  }
-  return {
-    imgUrl: imageUrl,
-    name: profileName,
-  };
-};
-
-// get profile for message screen function
-export const getProfileForMessage = async (
-  props: PropsGPFM
-): Promise<{ profile: ProfileType | undefined }> => {
-  const contract = new ContractPromise(props.api!, abi, contractAddress);
-  const { output } = await contract.query.getProfileInfo(
-    "",
-    {
-      value: 0,
-      gasLimit: -1,
-    },
-    props.userId
-  );
-  let profile;
-
-  if (output !== undefined && output !== null) {
-    const profileResult = output.toHuman() as ProfileType | undefined;
-    profile = profileResult;
-  }
-
-  return { profile };
 };
 
 export const getProfile = async (
@@ -241,7 +135,9 @@ export const getProfile = async (
 };
 
 // get simple profile for message screen function
-export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
+export const getSimpleProfileForMessage = async (
+  props: PropsGSPFM
+): Promise<ProfileType | undefined> => {
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getProfileInfo(
     "",
@@ -252,8 +148,9 @@ export const getSimpleProfileForMessage = async (props: PropsGSPFM) => {
     props.userId
   );
   if (output !== undefined && output !== null) {
-    return output.toHuman();
+    return output.toHuman() as ProfileType | undefined;
   }
+
   return;
 };
 
@@ -271,7 +168,7 @@ export const follow = async (props: PropsF) => {
     props.followedId
   );
   if (injector !== undefined) {
-    follow.signAndSend(
+    await follow.signAndSend(
       performingAccount!.address,
       { signer: injector.signer },
       (result) => {}
@@ -293,7 +190,7 @@ export const setProfileInfo = async (props: PropSPI) => {
     props.imgUrl
   );
   if (injector !== undefined) {
-    set_profile_info.signAndSend(
+    await set_profile_info.signAndSend(
       performingAccount!.address,
       { signer: injector.signer },
       (result) => {}

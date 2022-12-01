@@ -1,38 +1,47 @@
 import { ApiPromise } from "@polkadot/api";
 import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import React, { Dispatch } from "react";
+import React, { Dispatch, useContext } from "react";
 import Modal from "react-modal";
 
-import { getProfileForProfile, setProfileInfo } from "../hooks/profileFunction";
+import { setProfileInfo } from "../hooks/profileFunction";
+import Context from "../store/context";
 
 type Props = {
   isOpen: boolean;
   afterOpenFn: Dispatch<React.SetStateAction<boolean>>;
   api: ApiPromise | undefined;
   userId: string | undefined;
-  setImgUrl: Dispatch<React.SetStateAction<string>>;
-  setName: Dispatch<React.SetStateAction<string>>;
   actingAccount: InjectedAccountWithMeta | undefined;
 };
 
 export default function ProfileSettingModal(props: Props) {
+  const { myProfileState, myProfileDispatch } = useContext(Context);
+
   const submit = async (event: any) => {
     event.preventDefault();
+
+    const name = event.target.name.value ?? myProfileState.name;
+    const imgUrl = event.target.img_url.value ?? myProfileState.imgUrl;
+
     await setProfileInfo({
       api: props.api!,
       actingAccount: props.actingAccount!,
-      name: event.target.name.value,
-      imgUrl: event.target.img_url.value,
+      name,
+      imgUrl,
     });
-    await getProfileForProfile({
-      api: props.api,
-      userId: props.actingAccount?.address,
-      setImgUrl: props.setImgUrl,
-      setName: props.setName,
+
+    myProfileDispatch({
+      type: "UPDATE_PROFILE",
+      profile: {
+        ...myProfileState,
+        name,
+        imgUrl,
+      },
     });
+
     props.afterOpenFn(false);
     alert(
-      `img_url: ${event.target.img_url.value}\nname: ${event.target.name.value}`
+      `name: ${event.target.name.value}\nimg_url: ${event.target.img_url.value}`
     );
   };
   return (

@@ -9,9 +9,9 @@ export default function MessageMember(props: any) {
         props.setShowMessageModal(true);
         props.setUserName(props.name);
         props.setUserImgUrl(props.img_url);
+        props.setShowMessageModal(true);
         props.setMessageListId(props.messageListId);
         props.setMessageList(props.messageList);
-        props.setMyUserId(props.myUserId);
       }}
     >
       <Image

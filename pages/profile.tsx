@@ -12,98 +12,107 @@ import { balanceOf } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getIndividualPost } from "../hooks/postFunction";
 import {
-  checkCreatedInfo,
   createProfile,
   getFollowerList,
   getFollowingList,
-  getProfileForProfile,
+  getProfile,
 } from "../hooks/profileFunction";
 import Context from "../store/context";
 
 export default function Profile(props: any) {
-  const { accountState, accountDispatch } = useContext(Context);
+  const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
+    useContext(Context);
 
-  const [imgUrl, setImgUrl] = useState("");
-  const [isCreatedProfile, setIsCreatedProfile] = useState(true);
-  const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
-  const [name, setName] = useState("");
   const [individualPostList, setIndividualPostList] = useState<PostType[]>([]);
-
-  const [showSettingModal, setShowSettingModal] = useState(false);
   const [followingList, setFollowingList] = useState<Array<string>>([]);
   const [followerList, setFollowerList] = useState<Array<string>>([]);
   const [balance, setBalance] = useState<string>("0");
 
+  const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
+  const [showSettingModal, setShowSettingModal] = useState(false);
+
+  const loadAccount = async () => {
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!accountState.api) {
+      const api = await connectedApi();
+      accountDispatch({ type: "UPDATE_API", api });
+      return;
+    }
+
+    // 接続中のアカウントがない場合は接続する
+    if (!accountState.currentAccount) {
+      const accounts = await connectToContract();
+      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
+      return;
+    }
+
+    return;
+  };
+
+  // ウォレット情報の読み込み
   useEffect(() => {
+    // ３回呼ばれるて３回目で値が入る
+    loadAccount();
+  }, [accountState]);
+
+  // Read系を呼び出し
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
+    // 現在の残高取得
+    balanceOf({
+      api: accountState.api,
+      actingAccount: accountState.currentAccount!,
+      setBalance: setBalance,
+    });
+
+    getIndividualPost({
+      api: accountState.api,
+      actingAccount: accountState.currentAccount,
+      setIndividualPostList: setIndividualPostList,
+    }).then((value) => {
+      setIndividualPostList(value);
+    });
+
+    getFollowingList({
+      api: accountState.api,
+      userId: accountState.currentAccount?.address,
+      setFollowingList: setFollowingList,
+    }).then((value) => {
+      setFollowingList(value);
+    });
+
+    getFollowerList({
+      api: accountState.api,
+      userId: accountState.currentAccount?.address,
+      setFollowerList: setFollowerList,
+    }).then((value) => {
+      setFollowerList(value);
+    });
+  }, [accountState.currentAccount]);
+
+  // ユーザー情報の取得
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
     const main = async () => {
-      // Apiオブジェクトが存在しない場合は初期化をする
-      if (!accountState.api) {
-        const api = await connectedApi();
-        accountDispatch({ type: "UPDATE_API", api });
+      // プロフィール情報の取得と初期化
+      // 既に初期化が済んでいる場合は何もしない
+      const profile = await getProfile(
+        accountState.api!,
+        accountState.currentAccount!.address!
+      );
+
+      if (profile) {
+        myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
         return;
       }
-
-      // 接続中のアカウントがない場合は接続する
-      if (!accountState.currentAccount) {
-        const accounts = await connectToContract();
-        accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-        return;
-      }
-
-      const profile = await getProfileForProfile({
-        api: accountState.api,
-        userId: accountState.currentAccount!.address,
-        setImgUrl: setImgUrl,
-        setName: setName,
-      });
-
-      setImgUrl(profile.imgUrl);
-      setName(profile.name);
-
-      const postListResult = await getIndividualPost({
-        api: accountState.api,
-        actingAccount: accountState.currentAccount,
-        setIndividualPostList: setIndividualPostList,
-      });
-
-      setIndividualPostList(postListResult);
-
-      const followingListResult = await getFollowingList({
-        api: accountState.api,
-        userId: accountState.currentAccount?.address,
-        setFollowingList: setFollowingList,
-      });
-
-      setFollowingList(followingListResult);
-
-      const followerListResult = await getFollowerList({
-        api: accountState.api,
-        userId: accountState.currentAccount?.address,
-        setFollowerList: setFollowerList,
-      });
-
-      setFollowerList(followerListResult);
-
-      await balanceOf({
-        api: accountState.api,
-        actingAccount: accountState.currentAccount!,
-        setBalance: setBalance,
-      });
 
       if (isCreatedFnRun) {
-        return;
-      }
-
-      console.log("checkCreatedInfo");
-      const exists = await checkCreatedInfo({
-        api: accountState.api,
-        userId: accountState.currentAccount?.address!,
-        setIsCreatedProfile: setIsCreatedProfile,
-      });
-
-      if (exists) {
-        setIsCreatedProfile(exists);
-        setIsCreatedFnRun(true);
         return;
       }
 
@@ -115,7 +124,7 @@ export default function Profile(props: any) {
     };
 
     main();
-  }, [accountState, name, imgUrl]);
+  }, [accountState.currentAccount, isCreatedFnRun]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative light">
@@ -125,18 +134,16 @@ export default function Profile(props: any) {
           afterOpenFn={setShowSettingModal}
           api={accountState.api}
           userId={accountState.currentAccount?.address}
-          setImgUrl={setImgUrl}
-          setName={setName}
           actingAccount={accountState.currentAccount}
         />
         <TopBar
           idList={accountState.accounts}
-          imgUrl={imgUrl}
+          imgUrl={myProfileState.imgUrl}
           balance={balance}
         />
         <ProfileSubTopBar
-          imgUrl={imgUrl}
-          name={name}
+          imgUrl={myProfileState.imgUrl!}
+          name={myProfileState.name}
           followingList={followingList}
           followerList={followerList}
           isOpenModal={setShowSettingModal}
@@ -153,7 +160,7 @@ export default function Profile(props: any) {
               time={post.createdTime}
               description={post.description}
               num_of_likes={post.numOfLikes}
-              user_img_url={imgUrl}
+              user_img_url={myProfileState.imgUrl}
               post_img_url={post.imgUrl}
             />
           ))}

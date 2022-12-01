@@ -37,14 +37,14 @@ export default function MessageRoom(props: Props) {
   };
 
   return (
-    <div className="flex justify-center items-cente w-screen h-screen ">
-      <main className="items-center h-screen max-w-4xl fle flex-col">
+    <div className="flex justify-center items-center w-screen h-screen ">
+      <main className="h-screen w-screen max-w-4xl flex flex-col">
         <MessageBar
           userImgUrl={props.userImgUrl}
           userName={props.userName}
           setShowMessageModal={props.setShowMessageModal}
         />
-        <div className="flex-1 overflow-scroll w-full">
+        <div className="flex-1 overflow-scroll h-full w-full">
           {props.messageList.map((message) => (
             <div key={message.message}>
               <Message

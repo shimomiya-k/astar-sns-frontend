@@ -1,5 +1,3 @@
-import { ApiPromise } from "@polkadot/api";
-import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import React, { useContext, useEffect, useState } from "react";
 
 import { PostButton } from "../components/atoms/postButton";
@@ -11,106 +9,100 @@ import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf, distributeReferLikes, transfer } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getGeneralPost } from "../hooks/postFunction";
-import {
-  checkCreatedInfo,
-  createProfile,
-  getProfile,
-  getProfileForHome,
-} from "../hooks/profileFunction";
+import { createProfile, getProfile } from "../hooks/profileFunction";
 import Context from "../store/context";
 
 export default function Home() {
   const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
     useContext(Context);
 
-  const [isCreatedProfile, setIsCreatedProfile] = useState(true);
   const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
-  const [isDistributed, setIsDistributed] = useState(false);
 
   const [generalPostList, setGeneralPostList] = useState<PostType[]>([]);
   const [balance, setBalance] = useState<string>("0");
 
-  const loadAccount = async (): Promise<boolean> => {
+  const loadAccount = async () => {
     // Apiオブジェクトが存在しない場合は初期化をする
     if (!accountState.api) {
       const api = await connectedApi();
       accountDispatch({ type: "UPDATE_API", api });
-      return false;
+      return;
     }
 
     // 接続中のアカウントがない場合は接続する
     if (!accountState.currentAccount) {
       const accounts = await connectToContract();
       accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-      return false;
-    }
-
-    return true;
-  };
-
-  const initialProfile = async () => {
-    if (myProfileState.userId) {
       return;
     }
 
-    const profile = await getProfile(
-      accountState.api!,
-      accountState.currentAccount!.address!
-    );
-
-    if (profile) {
-      myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
-    }
+    return;
   };
 
-  useEffect(() => {
-    const main = async () => {
-      // アカウントの読み込みが完了しない場合は次の処理へ進めない
-      const next = await loadAccount();
-      if (!next) {
-        return;
-      }
+  const updateGeneralPost = () => {
+    console.log("updateGeneralPost");
+    // 全体ポストを取得する
+    getGeneralPost({
+      api: accountState.api!,
+      setGeneralPostList: setGeneralPostList,
+    });
+  };
 
+  // ウォレット情報の読み込み
+  useEffect(() => {
+    // ３回呼ばれるて３回目で値が入る
+    loadAccount();
+  }, [accountState]);
+
+  // Read系を呼び出し
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
+    // 現在の残高取得
+    balanceOf({
+      api: accountState.api,
+      actingAccount: accountState.currentAccount!,
+      setBalance: setBalance,
+    });
+
+    updateGeneralPost();
+  }, [accountState.currentAccount, showNewPostModal]);
+
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
+    // ライクした投稿へトークンを送る
+    distributeReferLikes({
+      api: accountState.api,
+      actingAccount: accountState.currentAccount!,
+    });
+  }, [accountState.currentAccount]);
+
+  // ユーザー情報の取得
+  useEffect(() => {
+    if (!accountState.currentAccount) {
+      return;
+    }
+
+    const main = async () => {
       // プロフィール情報の取得と初期化
       // 既に初期化が済んでいる場合は何もしない
-      await initialProfile();
+      const profile = await getProfile(
+        accountState.api!,
+        accountState.currentAccount!.address!
+      );
 
-      await balanceOf({
-        api: accountState.api,
-        actingAccount: accountState.currentAccount!,
-        setBalance: setBalance,
-      });
-
-      await getGeneralPost({
-        api: accountState.api!,
-        setGeneralPostList: setGeneralPostList,
-      });
-
-      if (isDistributed) {
+      if (profile) {
+        myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
         return;
       }
-
-      await distributeReferLikes({
-        api: accountState.api,
-        actingAccount: accountState.currentAccount!,
-      });
-
-      setIsDistributed(true);
 
       if (isCreatedFnRun) {
-        return;
-      }
-
-      const exists = await checkCreatedInfo({
-        api: accountState.api,
-        userId: accountState.currentAccount!.address!,
-        setIsCreatedProfile: setIsCreatedProfile,
-      });
-
-      if (exists) {
-        setIsCreatedProfile(exists);
-        setIsCreatedFnRun(true);
         return;
       }
 
@@ -122,7 +114,7 @@ export default function Home() {
     };
 
     main();
-  }, [accountState]);
+  }, [accountState.currentAccount, isCreatedFnRun]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative">
@@ -153,6 +145,7 @@ export default function Home() {
               postId={post.postId}
               actingAccount={accountState.currentAccount}
               api={accountState.api}
+              updateGeneralPost={updateGeneralPost}
             />
           ))}
         </div>

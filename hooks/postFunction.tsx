@@ -50,7 +50,6 @@ const contractAddress: string = process.env
 
 // release post function
 export const releasePost = async (props: PropsRP) => {
-  console.log("releasePost");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -71,7 +70,7 @@ export const releasePost = async (props: PropsRP) => {
     props.imgUrl
   );
   if (injector !== undefined) {
-    release_post.signAndSend(
+    await release_post.signAndSend(
       performingAccount.address,
       { signer: injector.signer },
       (result) => {}
@@ -81,7 +80,6 @@ export const releasePost = async (props: PropsRP) => {
 
 // get general post function
 export const getGeneralPost = async (props: PropsGGP) => {
-  console.log("getGeneralPost");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const { output } = await contract.query.getGeneralPost(
     "",
@@ -102,7 +100,6 @@ export const getGeneralPost = async (props: PropsGGP) => {
 
 // add like to post function
 export const addLikes = async (props: PropsAL) => {
-  console.log("addLikes");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -114,8 +111,9 @@ export const addLikes = async (props: PropsAL) => {
     },
     props.postId
   );
+
   if (injector !== undefined) {
-    add_likes.signAndSend(
+    await add_likes.signAndSend(
       performingAccount!.address,
       { signer: injector.signer },
       (result) => {}

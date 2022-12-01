@@ -1,4 +1,8 @@
-import { MyProfileAction, MyProfileState } from "../../state/profile";
+import {
+  initialMyProfileState,
+  MyProfileAction,
+  MyProfileState,
+} from "../../state/profile";
 
 export const profileReducer = (
   state: MyProfileState,
@@ -10,6 +14,8 @@ export const profileReducer = (
       return {
         ...state,
         ...action.profile,
+        name: action.profile.name ?? initialMyProfileState.name,
+        imgUrl: action.profile.imgUrl ?? initialMyProfileState.imgUrl,
       };
     case "UPDATE_FRIEND":
       let { friendList } = state;
