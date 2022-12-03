@@ -10,7 +10,6 @@ type Props = {
   name: string;
   isOpenModal: Dispatch<React.SetStateAction<boolean>>;
   idList: InjectedAccountWithMeta[];
-  setIsCreatedFnRun: Dispatch<React.SetStateAction<boolean>>;
   api: ApiPromise;
   actingAccount: InjectedAccountWithMeta;
   followingList: Array<string>;
@@ -25,7 +24,6 @@ export default function ProfileSubTopBar(props: Props) {
         name={props.name}
         isOpenModal={props.isOpenModal}
         idList={props.idList}
-        setIsCreatedFnRun={props.setIsCreatedFnRun}
         api={props.api}
         actingAccount={props.actingAccount}
         followingList={props.followingList}

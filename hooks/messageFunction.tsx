@@ -1,6 +1,7 @@
 import { ApiPromise } from "@polkadot/api";
 import { ContractPromise } from "@polkadot/api-contract";
 import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import { ISubmittableResult } from "@polkadot/types/types";
 
 import abi from "../metadata.json";
 
@@ -17,6 +18,7 @@ type PropsSM = {
   actingAccount: InjectedAccountWithMeta;
   message: string;
   id: string;
+  callback?: (result: ISubmittableResult) => void;
 };
 
 // getMessage関数用の型
@@ -37,38 +39,46 @@ const contractAddress: string = process.env
 
 // メッセージ送信関数
 export const sendMessage = async (props: PropsSM) => {
-  console.log("sendMessage");
+  console.log("Call to sendMessage: " + `${props.id}`);
+  if (!props.id) {
+    return;
+  }
+
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
   const injector = await web3FromSource(performingAccount.meta.source);
   const date = new Date();
-  const add_likes = await contract.tx.sendMessage(
+  const createdAt =
+    [date.getMonth() + 1, date.getDate()].join("-") +
+    " " +
+    [
+      date.getHours().toString().padStart(2, "0"),
+      date.getMinutes().toString().padStart(2, "0"),
+    ].join(":");
+  console.log(createdAt);
+  const send_message = contract.tx.sendMessage(
     {
       value: 0,
-      gasLimit: 100000,
+      gasLimit: 18750000000,
     },
     props.message,
-    props.id,
-    [date.getMonth() + 1, date.getDate()].join("-") +
-      " " +
-      [
-        date.getHours().toString().padStart(2, "0"),
-        date.getMinutes().toString().padStart(2, "0"),
-      ].join(":")
+    Number(props.id),
+    createdAt
   );
+
   if (injector !== undefined) {
-    add_likes.signAndSend(
+    await send_message.signAndSend(
       performingAccount.address,
       { signer: injector.signer },
-      (result) => {}
+      props.callback
     );
   }
 };
 
 // メッセージリストを取得する関数
 export const getMessageList = async (props: PropsGML) => {
-  console.log("getMessageList");
+  console.log("Call to getMessageList: " + `${props.id}`);
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getMessageList(
     "",
@@ -79,6 +89,9 @@ export const getMessageList = async (props: PropsGML) => {
     props.id,
     1
   );
+
+  console.log(output);
+
   if (output !== undefined && output !== null) {
     return output;
   }
@@ -87,7 +100,7 @@ export const getMessageList = async (props: PropsGML) => {
 
 // それぞれのメッセージリストの最後のメッセージを取得する関数
 export const getLastMessage = async (props: PropsGLM) => {
-  console.log("getLastMessage");
+  console.log("Call to getLastMessage: " + `${props.id}`);
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.getLastMessage(
     "",
@@ -97,8 +110,11 @@ export const getLastMessage = async (props: PropsGLM) => {
     },
     props.id
   );
+
+  console.log(output);
+
   if (output !== undefined && output !== null) {
-    const message = output.toHuman();
-    return message?.toString() ?? "";
+    const result = output.toHuman() as any;
+    return result?.message ?? "";
   }
 };

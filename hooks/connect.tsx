@@ -18,7 +18,7 @@ type Props = {
 
 export const connectedApi = async (): Promise<ApiPromise> => {
   // rpcのURL
-  const blockchainUrl = "ws://127.0.0.1:9944";
+  const blockchainUrl = "wss://shibuya.public.blastapi.io";
   const wsProvider = new WsProvider(blockchainUrl);
   return await ApiPromise.create({ provider: wsProvider });
 };
@@ -27,28 +27,14 @@ export const connectedApi = async (): Promise<ApiPromise> => {
 export const connectToContract = async (): Promise<
   InjectedAccountWithMeta[]
 > => {
-  // rpcのURL
-  // const blockchainUrl = "ws://127.0.0.1:9944";
+  const { web3Accounts, web3Enable } = await import("@polkadot/extension-dapp");
+  const extensions = await web3Enable("Polk4NET");
 
-  // この関数でアカウント情報を取得する
-  const extensionSetup = async (): Promise<InjectedAccountWithMeta[]> => {
-    const { web3Accounts, web3Enable } = await import(
-      "@polkadot/extension-dapp"
-    );
-    const extensions = await web3Enable("Polk4NET");
+  if (extensions.length === 0) {
+    return [];
+  }
 
-    if (extensions.length === 0) {
-      return [];
-    }
+  const accounts = await web3Accounts();
 
-    const accounts = await web3Accounts();
-
-    return accounts;
-  };
-
-  // この部分でコントラクトに接続
-  // const wsProvider = new WsProvider(blockchainUrl);
-  // const connectedApi = await ApiPromise.create({ provider: wsProvider });
-  // props.setApi(connectedApi);
-  return extensionSetup();
+  return accounts;
 };

@@ -2,6 +2,10 @@ import { AccountAction, AccountState } from "../../state/account";
 
 export const accountReducer = (state: AccountState, action: AccountAction) => {
   switch (action.type) {
+    case "UPDATE_ACCOUNT_STATE":
+      return {
+        ...action.state,
+      };
     case "UPDATE_API":
       return {
         ...state,

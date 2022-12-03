@@ -1,16 +1,14 @@
 import { ApiPromise } from "@polkadot/api";
 import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import Image from "next/image";
-import React, { Dispatch } from "react";
-import { BsArrowLeft } from "react-icons/bs";
+import React, { Dispatch, useContext } from "react";
 
-import { InputBox } from "../components/atoms/inputBox";
-import { SendButton } from "../components/atoms/sendButton";
 import { FormBox } from "../components/molecules/formBox";
 import { MessageBar } from "../components/organisms/messageBar";
 import { sendMessage } from "../hooks/messageFunction";
 import type { MessageType } from "../hooks/messageFunction";
 import Message from "./message";
+import Context from "../store/context";
+import { MyProfileState } from "../state/profile";
 
 type Props = {
   api: ApiPromise;
@@ -22,9 +20,12 @@ type Props = {
   setShowMessageModal: Dispatch<React.SetStateAction<boolean>>;
   myUserId: string;
   myImgUrl: string;
+  refreshMessageMemberList: (props: MyProfileState) => Promise<void>;
 };
 
 export default function MessageRoom(props: Props) {
+  const { myProfileState } = useContext(Context);
+
   const submit = async (event: any) => {
     event.preventDefault();
     await sendMessage({
@@ -32,6 +33,11 @@ export default function MessageRoom(props: Props) {
       actingAccount: props.actingAccount,
       message: event.target.message.value,
       id: props.messageListId,
+      callback: (result) => {
+        if (result.isCompleted) {
+          props.refreshMessageMemberList(myProfileState);
+        }
+      },
     });
     event.target.message.value = "";
   };

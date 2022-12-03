@@ -14,8 +14,14 @@ type Props = {
 };
 
 export const SmallerProfileIcon: FC<Props> = (props: Props) => {
-  const { myProfileDispatch } = useContext(Context);
+  const { myProfileState, myProfileDispatch } = useContext(Context);
   const implementFollow = async () => {
+    const { followingList } = myProfileState;
+
+    if (followingList.indexOf(props.userId) > -1) {
+      return;
+    }
+
     if (confirm("Would you like to follow this account?")) {
       await follow({
         api: props.api,

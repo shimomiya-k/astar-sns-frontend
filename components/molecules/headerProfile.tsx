@@ -13,7 +13,9 @@ type Props = {
 };
 
 const HeaderProfile: FC<Props> = (props) => {
-  const { accountDispatch } = useContext(Context);
+  const { accountState, accountDispatch } = useContext(Context);
+  const { currentAccount } = accountState;
+  const list = props.idList.map((e) => e.address);
 
   return (
     <div className="flex-row flex items-center ml-[30px]">
@@ -38,7 +40,11 @@ const HeaderProfile: FC<Props> = (props) => {
         >
           {props.idList ? (
             props.idList.map((id, index) => (
-              <option key={index} value={index}>
+              <option
+                key={index}
+                value={index}
+                selected={list.indexOf(currentAccount?.address ?? "") == index}
+              >
                 {" "}
                 {id.address}{" "}
               </option>

@@ -9,39 +9,59 @@ import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf, distributeReferLikes, transfer } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getGeneralPost } from "../hooks/postFunction";
-import { createProfile, getProfile } from "../hooks/profileFunction";
+import {
+  checkCreatedInfo,
+  createProfile,
+  getProfile,
+} from "../hooks/profileFunction";
 import Context from "../store/context";
 
 export default function Home() {
   const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
     useContext(Context);
 
-  const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
+  const [previousAddress, setPreviousAddress] = useState<string | undefined>(
+    accountState.currentAccount?.address
+  );
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
 
   const [generalPostList, setGeneralPostList] = useState<PostType[]>([]);
   const [balance, setBalance] = useState<string>("0");
 
   const loadAccount = async () => {
-    // Apiオブジェクトが存在しない場合は初期化をする
-    if (!accountState.api) {
-      const api = await connectedApi();
-      accountDispatch({ type: "UPDATE_API", api });
+    let api = accountState.api;
+    let accounts = accountState.accounts;
+    let currentAccount = accountState.currentAccount;
+
+    // 各ステートが存在する場合は何もしない
+    if (api && accounts.length > 0 && currentAccount) {
       return;
+    }
+
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!api) {
+      api = await connectedApi();
     }
 
     // 接続中のアカウントがない場合は接続する
     if (!accountState.currentAccount) {
-      const accounts = await connectToContract();
-      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-      return;
+      accounts = await connectToContract();
     }
 
+    accountDispatch({
+      type: "UPDATE_ACCOUNT_STATE",
+      state: {
+        api,
+        accounts,
+        currentAccount: accounts[0],
+      },
+    });
+    setPreviousAddress(accounts[0].address);
     return;
   };
 
   const updateGeneralPost = () => {
-    console.log("updateGeneralPost");
     // 全体ポストを取得する
     getGeneralPost({
       api: accountState.api!,
@@ -72,15 +92,40 @@ export default function Home() {
   }, [accountState.currentAccount, showNewPostModal]);
 
   useEffect(() => {
-    if (!accountState.currentAccount) {
-      return;
-    }
+    const main = async () => {
+      if (!accountState.currentAccount) {
+        return;
+      }
 
-    // ライクした投稿へトークンを送る
-    distributeReferLikes({
-      api: accountState.api,
-      actingAccount: accountState.currentAccount!,
-    });
+      const { address } = accountState.currentAccount;
+
+      if (address === previousAddress) {
+        return;
+      }
+
+      if (!previousAddress) {
+        setPreviousAddress(accountState.currentAccount.address);
+      }
+
+      const result = await checkCreatedInfo({
+        api: accountState.api,
+        userId: accountState.currentAccount!.address,
+      });
+
+      if (!result) {
+        return;
+      }
+
+      // ライクした投稿へトークンを送る
+      distributeReferLikes({
+        api: accountState.api,
+        actingAccount: accountState.currentAccount!,
+      });
+
+      setPreviousAddress(accountState.currentAccount!.address);
+    };
+
+    main();
   }, [accountState.currentAccount]);
 
   // ユーザー情報の取得
@@ -102,19 +147,30 @@ export default function Home() {
         return;
       }
 
-      if (isCreatedFnRun) {
-        return;
+      const result = await checkCreatedInfo({
+        api: accountState.api,
+        userId: accountState.currentAccount!.address,
+      });
+
+      if (result || isCreatingProfile) {
+        return false;
       }
+
+      setIsCreatingProfile(true);
 
       await createProfile({
         api: accountState.api,
         actingAccount: accountState.currentAccount!,
+        callback: (result) => {
+          if (result.isCompleted) {
+            setIsCreatingProfile(false);
+          }
+        },
       });
-      setIsCreatedFnRun(true);
     };
 
     main();
-  }, [accountState.currentAccount, isCreatedFnRun]);
+  }, [accountState.currentAccount, isCreatingProfile]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative">

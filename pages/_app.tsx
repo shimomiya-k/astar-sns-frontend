@@ -6,7 +6,6 @@ import { initialAccountState } from "../state/account";
 import { accountReducer } from "../store/reducers/account";
 import { profileReducer } from "../store/reducers/profile";
 import { initialMyProfileState } from "../state/profile";
-import { connectedApi, connectToContract } from "../hooks/connect";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [accountState, accountDispatch] = useReducer(

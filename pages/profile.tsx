@@ -12,6 +12,7 @@ import { balanceOf } from "../hooks/FT";
 import type { PostType } from "../hooks/postFunction";
 import { getIndividualPost } from "../hooks/postFunction";
 import {
+  checkCreatedInfo,
   createProfile,
   getFollowerList,
   getFollowingList,
@@ -28,24 +29,37 @@ export default function Profile(props: any) {
   const [followerList, setFollowerList] = useState<Array<string>>([]);
   const [balance, setBalance] = useState<string>("0");
 
-  const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [showSettingModal, setShowSettingModal] = useState(false);
 
   const loadAccount = async () => {
-    // Apiオブジェクトが存在しない場合は初期化をする
-    if (!accountState.api) {
-      const api = await connectedApi();
-      accountDispatch({ type: "UPDATE_API", api });
+    let api = accountState.api;
+    let accounts = accountState.accounts;
+    let currentAccount = accountState.currentAccount;
+
+    // 各ステートが存在する場合は何もしない
+    if (api && accounts.length > 0 && currentAccount) {
       return;
+    }
+
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!api) {
+      api = await connectedApi();
     }
 
     // 接続中のアカウントがない場合は接続する
     if (!accountState.currentAccount) {
-      const accounts = await connectToContract();
-      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-      return;
+      accounts = await connectToContract();
     }
 
+    accountDispatch({
+      type: "UPDATE_ACCOUNT_STATE",
+      state: {
+        api,
+        accounts,
+        currentAccount: accounts[0],
+      },
+    });
     return;
   };
 
@@ -112,19 +126,30 @@ export default function Profile(props: any) {
         return;
       }
 
-      if (isCreatedFnRun) {
-        return;
+      const result = await checkCreatedInfo({
+        api: accountState.api,
+        userId: accountState.currentAccount!.address,
+      });
+
+      if (result || isCreatingProfile) {
+        return false;
       }
+
+      setIsCreatingProfile(true);
 
       await createProfile({
         api: accountState.api,
         actingAccount: accountState.currentAccount!,
+        callback: (result) => {
+          if (result.isCompleted) {
+            setIsCreatingProfile(false);
+          }
+        },
       });
-      setIsCreatedFnRun(true);
     };
 
     main();
-  }, [accountState.currentAccount, isCreatedFnRun]);
+  }, [accountState.currentAccount, isCreatingProfile]);
 
   return (
     <div className="flex justify-center items-center w-screen h-screen relative light">
@@ -150,7 +175,6 @@ export default function Profile(props: any) {
           idList={accountState.accounts}
           api={accountState.api!}
           actingAccount={accountState.currentAccount!}
-          setIsCreatedFnRun={setIsCreatedFnRun}
         />
         <div className="flex-1 overflow-scroll">
           {individualPostList.map((post) => (

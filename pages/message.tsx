@@ -8,9 +8,9 @@ import { connectedApi, connectToContract } from "../hooks/connect";
 import { balanceOf } from "../hooks/FT";
 import { getLastMessage, getMessageList } from "../hooks/messageFunction";
 import {
+  checkCreatedInfo,
   createProfile,
   getProfile,
-  getSimpleProfileForMessage,
 } from "../hooks/profileFunction";
 import type { ProfileType } from "../hooks/profileFunction";
 import Context from "../store/context";
@@ -20,8 +20,7 @@ export default function Message() {
   const { accountState, accountDispatch, myProfileState, myProfileDispatch } =
     useContext(Context);
 
-  const [isCreatedProfile, setIsCreatedProfile] = useState(true);
-  const [isCreatedFnRun, setIsCreatedFnRun] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [messageList, setMessageList] = useState<any[]>([]);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [userName, setUserName] = useState("");
@@ -31,20 +30,33 @@ export default function Message() {
   const [balance, setBalance] = useState<string>("0");
 
   const loadAccount = async () => {
-    // Apiオブジェクトが存在しない場合は初期化をする
-    if (!accountState.api) {
-      const api = await connectedApi();
-      accountDispatch({ type: "UPDATE_API", api });
+    let api = accountState.api;
+    let accounts = accountState.accounts;
+    let currentAccount = accountState.currentAccount;
+
+    // 各ステートが存在する場合は何もしない
+    if (api && accounts.length > 0 && currentAccount) {
       return;
+    }
+
+    // Apiオブジェクトが存在しない場合は初期化をする
+    if (!api) {
+      api = await connectedApi();
     }
 
     // 接続中のアカウントがない場合は接続する
     if (!accountState.currentAccount) {
-      const accounts = await connectToContract();
-      accountDispatch({ type: "UPDATE_ACCOUNTS", accounts });
-      return;
+      accounts = await connectToContract();
     }
 
+    accountDispatch({
+      type: "UPDATE_ACCOUNT_STATE",
+      state: {
+        api,
+        accounts,
+        currentAccount: accounts[0],
+      },
+    });
     return;
   };
 
@@ -82,33 +94,43 @@ export default function Message() {
 
       if (profile) {
         myProfileDispatch({ type: "UPDATE_PROFILE", profile: { ...profile } });
-        await createMessageMemberList(profile);
+        refreshMessageMemberList(profile);
         return;
       }
 
-      if (isCreatedFnRun) {
-        return;
+      const result = await checkCreatedInfo({
+        api: accountState.api,
+        userId: accountState.currentAccount!.address,
+      });
+
+      if (result || isCreatingProfile) {
+        return false;
       }
+
+      setIsCreatingProfile(true);
 
       await createProfile({
         api: accountState.api,
         actingAccount: accountState.currentAccount!,
+        callback: (result) => {
+          if (result.isCompleted) {
+            setIsCreatingProfile(false);
+          }
+        },
       });
-      setIsCreatedFnRun(true);
     };
 
     main();
-  }, [accountState.currentAccount, isCreatedFnRun]);
+  }, [accountState.currentAccount, isCreatingProfile]);
 
   // create message member list UI
-  const createMessageMemberList = async (profile: MyProfileState) => {
-    const { followerList } = profile;
+  const refreshMessageMemberList = async (profile: MyProfileState) => {
+    const { friendList } = profile;
     let memberList: Array<any> = new Array();
-    for (var i = 0; i < followerList.length; i++) {
-      let friendProfile = (await getSimpleProfileForMessage({
-        api: accountState.api,
-        userId: followerList[i],
-      })) as ProfileType;
+
+    console.log(profile);
+    for (var i = 0; i < friendList.length; i++) {
+      let friendProfile = await getProfile(accountState.api!, friendList[i]);
 
       const idList = profile?.messageListIdList;
       let lastMessage: string | undefined;
@@ -126,7 +148,7 @@ export default function Message() {
 
       let memberListFactor = (
         <MessageMember
-          key={`${friendProfile.userId}${i}`}
+          key={`${friendProfile!.userId}${i}`}
           name={friendProfile?.name!}
           setUserName={setUserName}
           img_url={friendProfile?.imgUrl}
@@ -175,6 +197,7 @@ export default function Message() {
       actingAccount={accountState.currentAccount!}
       messageListId={messageListId!}
       messageList={messageList!}
+      refreshMessageMemberList={refreshMessageMemberList}
     />
   );
 }

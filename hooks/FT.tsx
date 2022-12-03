@@ -26,6 +26,7 @@ const contractAddress: string = process.env
   .NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
 export const balanceOf = async (props: PropsBO) => {
+  console.log("Call to balanceOf");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const { gasConsumed, result, output } = await contract.query.balanceOf(
     "",
@@ -42,7 +43,7 @@ export const balanceOf = async (props: PropsBO) => {
 };
 
 export const transfer = async (props: PropsTF) => {
-  console.log("transfer");
+  console.log("Call to transfer");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api!, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -65,7 +66,7 @@ export const transfer = async (props: PropsTF) => {
 };
 
 export const distributeReferLikes = async (props: PropsDRL) => {
-  console.log("distributeReferLikes");
+  console.log("Call to distributeReferLikes");
   const { web3FromSource } = await import("@polkadot/extension-dapp");
 
   const contract = new ContractPromise(props.api!, abi, contractAddress);

@@ -10,6 +10,7 @@ export type AccountState = {
 };
 
 export type AccountAction =
+  | { type: "UPDATE_ACCOUNT_STATE"; state: AccountState }
   | { type: "UPDATE_API"; api: ApiPromise }
   | { type: "UPDATE_ACCOUNTS"; accounts: InjectedAccountWithMeta[] }
   | { type: "UPDATE_CURRENT_ACCOUNT"; account: InjectedAccountWithMeta };

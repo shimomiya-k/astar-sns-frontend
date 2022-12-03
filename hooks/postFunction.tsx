@@ -50,6 +50,7 @@ const contractAddress: string = process.env
 
 // release post function
 export const releasePost = async (props: PropsRP) => {
+  console.log("Call to releasePost: " + `${props.imgUrl}`);
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -80,6 +81,7 @@ export const releasePost = async (props: PropsRP) => {
 
 // get general post function
 export const getGeneralPost = async (props: PropsGGP) => {
+  console.log("Call to getGeneralPost");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const { output } = await contract.query.getGeneralPost(
     "",
@@ -100,6 +102,7 @@ export const getGeneralPost = async (props: PropsGGP) => {
 
 // add like to post function
 export const addLikes = async (props: PropsAL) => {
+  console.log("Call to addLikes: " + `${props.postId}`);
   const { web3FromSource } = await import("@polkadot/extension-dapp");
   const contract = new ContractPromise(props.api, abi, contractAddress);
   const performingAccount = props.actingAccount;
@@ -125,7 +128,7 @@ export const addLikes = async (props: PropsAL) => {
 export const getIndividualPost = async (
   props: PropsGIP
 ): Promise<PostType[]> => {
-  console.log("getIndividualPost");
+  console.log("Call to getIndividualPost");
   const contract = new ContractPromise(props.api!, abi, contractAddress!);
   const { gasConsumed, result, output } =
     await contract.query.getIndividualPost(

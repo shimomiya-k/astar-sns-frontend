@@ -9,7 +9,6 @@ type Props = {
   name: string;
   isOpenModal: Dispatch<React.SetStateAction<boolean>>;
   idList: InjectedAccountWithMeta[];
-  setIsCreatedFnRun: Dispatch<React.SetStateAction<boolean>>;
   api: ApiPromise;
   actingAccount: InjectedAccountWithMeta;
   followingList: Array<string>;
@@ -24,7 +23,6 @@ export const ProfileList: FC<Props> = (props: Props) => {
         isOpenModal={props.isOpenModal}
         name={props.name}
         idList={props.idList}
-        setIsCreatedFnRun={props.setIsCreatedFnRun}
       />
       <div className="">{`${props.followingList.length} following ${props.followerList.length} follower `}</div>
     </div>
